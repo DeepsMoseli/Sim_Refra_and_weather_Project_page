@@ -138,9 +138,10 @@ Our geometric distortion module simulates four physically inspired refractive ef
 
 ## Restoration Models & Evaluation
 
-We fine-tune three pre-trained architectures for image restoration: **ResUNet** (ImageNet weights), **SegFormer-B1** (ImageNet weights), and a **Conditional DDPM diffusion model** (`ddpm-cat-256` weights).  
-For **ResUNet** and **SegFormer-B1**, encoder weights are frozen and only decoder parameters are updated. The diffusion U-Net is fine-tuned end-to-end. Each model is trained independently for two tasks:  
-- **Refractive undistortion** (correcting geometric warps)  
+We fine-tune three pre-trained architectures for image restoration: **ResUNet** (ImageNet weights), **SegFormer-B1** (ImageNet weights), and a **conditional DDPM diffusion model** (`ddpm-cat-256` weights).
+For **ResUNet** and **SegFormer-B1**, encoder weights are frozen and only decoder parameters are updated. The diffusion U-Net is fine-tuned end-to-end.
+Each model is trained independently for two tasks:
+- **Refractive undistortion** (correcting geometric warps)
 - **Deweathering** (removing uniform fog, heterogeneous fog, and lens flare)
 
 ### Training Setup
@@ -148,42 +149,29 @@ For **ResUNet** and **SegFormer-B1**, encoder weights are frozen and only decode
 - **Epochs:** 35 for refractive undistortion; 15 for deweathering  
 - **Batch sizes:** 16 (ResUNet, SegFormer-B1); 8 (DDPM)  
 - **Optimizer:** AdamW  
-- **Learning rates:** 5×10⁻⁵ (ResUNet, SegFormer-B1); 1×10⁻⁵ (DDPM)  
-- **Schedulers:** ReduceLROnPlateau (factor 0.5, patience 5); cosine warm-up (500 steps) for DDPM  
+- **Learning rates:** 5e-5 (ResUNet, SegFormer-B1); 1e-5 (DDPM)  
+- **Schedulers:** ReduceLROnPlateau (factor 0.5, patience 5); cosine warm-up with 500 steps for DDPM  
 - **Precision:** Mixed-precision AMP  
-- **Image resolution:** 256 × 256 crops for DDPM
+- **Image resolution:** 256×256 crops for DDPM
 
 ### Objective Functions
 
-**Refractive undistortion**  
-Supervised with ground-truth UV maps and clean RGB targets:
-\[
-\mathcal{L} = \| \hat{I} - I_{\mathrm{GT}} \|_1 + \| \hat{y}_{uv} - y^{uv}_{\mathrm{GT}} \|_1,
-\qquad
-\hat{I} = \mathrm{warp}(x, \hat{y}_{uv})
-\]
-where \(x\) is the distorted input and \(\hat{y}_{uv}\) the predicted flow.
+**Refractive undistortion**
+- Supervised with ground-truth UV maps and clean RGB targets.
+- Loss = L1(image reconstruction) + L1(UV flow):  
+  difference between predicted clean image and ground truth **plus** difference between predicted UV flow and ground-truth UV flow.  
+- The predicted clean image is obtained by warping the distorted input using the predicted UV flow, i.e., `pred_image = warp(x, y_hat_uv)`.
 
-**Conditional DDPM loss**
-\[
-\mathcal{L}_{\mathrm{DDPM}} = 0.8\,\| \hat{\varepsilon} - \varepsilon \|_1 + \| \mathrm{warp}(x, \hat{y}) - I_{\mathrm{GT}} \|_2^2
-\]
-The first term trains the UV-denoising U-Net; the second enforces reconstruction consistency.
+**Conditional DDPM**
+- Loss = 0.8 × L1(noise prediction error) **plus** L2(image reconstruction) on `warp(x, y_hat)` vs the clean image.  
+- The first term trains the UV-denoising U-Net; the second encourages the reconstructed image to match the ground truth.
 
-**Deweathering objective**
-\[
-\mathcal{L} = \| \hat{I} - I_{\mathrm{GT}} \|_1
-\]
-with \(x\) the corrupted input and \(\hat{I}\) the predicted clean output.
+**Deweathering**
+- Loss = L1(image reconstruction) between the predicted deweathered image and the clean image.
 
 ### Evaluation Metrics
-We report **Peak Signal-to-Noise Ratio (PSNR)** for restored images and **Endpoint Error (EPE)** for UV maps:
-\[
-\mathrm{PSNR} = 10 \log_{10}\!\left(\frac{MAX^2}{MSE}\right),
-\qquad
-\mathrm{EPE} = \frac{1}{N}\sum_i \big\| \hat{y}^{(i)}_{uv} - y^{(i)}_{\mathrm{GT}} \big\|_2
-\]
-where \(MAX = 255\) and \(MSE\) is computed between predicted and ground-truth images. Higher **PSNR** indicates better visual fidelity; lower **EPE** indicates more accurate UV flow.
+- **PSNR (Peak Signal-to-Noise Ratio):** computed from the mean squared error (MSE) between the restored image and ground truth; higher is better. We use MAX = 255 for 8-bit images.  
+- **EPE (Endpoint Error):** average Euclidean distance per pixel between the predicted UV flow and the ground-truth UV flow; lower is better.
 
 
 ## Results
