@@ -65,6 +65,7 @@ import flare_orig from "../assets/flare_orig.png";
 import flare_sim from "../assets/flare_sim.png";
 import uniform_fog_orig from "../assets/uniform_fog_orig.png";
 import uniform_fog_sim from "../assets/uniform_fog_sim.png";
+import all_geometric from "../assets/all_geometric.png";
 
 import Table from "../components/Table.astro";
 export const components = { table: Table }
@@ -87,22 +88,15 @@ benchmark results.
 
 ## Pipeline
 
-Use the figure component to display images, videos, equations, or any other element, with an optional caption.
-
 <Figure>
   <Picture slot="figure" src={framework} alt="Diagram of the transformer deep learning architecture." invertInDarkMode />
   <Fragment slot="caption">Overview of our two-stage restoration pipeline: a Synthetic Distortion Module applies random refractive distortions and weather artifacts; a Refractive U-Net predicts a dense UV displacement field to correct warps; and a Deweathering U-Net removes weather artifacts. The two models are trained separately.</Fragment>
 </Figure>
 
-If you stored your figures as PDFs, the `Picture` component can convert them into web-friendly images automatically.
 
-<Figure>
-  <Picture slot="figure" src="../assets/allstate-sparsity.pdf" alt="Impact of the sparsity-aware algorithm in XGBoost on the Allstate-10K dataset." invertInDarkMode />
-  <Fragment slot="caption">Impact of the sparsity-aware algorithm in [XGBoost](https://arxiv.org/abs/1603.02754) on the Allstate-10K dataset.</Fragment>
-</Figure>
+## Weather Artifacts
 
-Use the `Comparison` component to compare two elements with an interactive slider. It should work for any component or HTML element, including images, videos, and 3D models.
-
+<TwoColumns>
 <Figure>
   <Comparison slot="figure" client:idle>
     <Picture slot="itemOne" src={uniform_fog_orig} alt="Original driving scene without fog effects" />
@@ -112,8 +106,6 @@ Use the `Comparison` component to compare two elements with an interactive slide
     Comparison of a clear driving scene and its fog-augmented version generated using our uniform fog simulation. The method reduces visibility uniformly across depth.
   </Fragment>
 </Figure>
-
-
 <Figure>
   <Comparison slot="figure" client:idle>
     <Picture slot="itemOne" src={flare_orig} alt="Original driving scene without lens flare" />
@@ -123,29 +115,76 @@ Use the `Comparison` component to compare two elements with an interactive slide
     Comparison between a clear driving scene and its lens flare simulation. The flare overlay introduces realistic streaks and glare patterns to mimic sunlight reflections on the camera lens.
   </Fragment>
 </Figure>
-
-
-
-## Two columns
-
-Use the two columns component to display two columns of content. In this example, the first column contains a figure with a YouTube video and the second column contains a figure with a custom [React](https://react.dev/) component. By default, they display side by side, but if the screen is narrow enough (for example, on mobile), they're arranged vertically.
-
-<TwoColumns>
-  <Figure slot="left">
-    <YouTubeVideo slot="figure" videoId="wjZofJX0v4M" />
-    <Fragment slot="caption">Take a look at this YouTube video.</Fragment>
-  </Figure>
-  <Figure slot="right">
-    <ThreeDimensional slot="figure" filename="BoxVertexColors.glb" client:idle />
-    <Fragment slot="caption">Now look at this cube, rendered with React Three Fiber.</Fragment>
-  </Figure>
 </TwoColumns>
 
-## LaTeX
 
-You can also add LaTeX formulas, rendered during the build process using [KaTeX](https://katex.org/) so they're quick to load for visitors of your project page. You can write them inline, like this: <LaTeX inline formula="a^2 + b^2 = c^2" />. Or, you can write them as a block:
 
-<LaTeX formula="\int_a^b f(x) dx" />
+## Refractive Distortions
+
+Our geometric distortion module simulates four physically inspired refractive effects commonly observed in real-world camera optics:
+
+- **Radial distortion**: Introduces barrel- or pincushion-like bending caused by imperfect lens curvature.  
+- **Perlin distortion**: Applies spatially varying local warps using Perlin noise to mimic glass irregularities or vibration-induced refractions.  
+- **Thin-Plate Spline (TPS) distortion**: Produces smooth, non-linear deformations driven by sparse control points, resembling subtle structural warping.  
+- **Divergence-Free distortion**: Generates fluid-like displacement fields constrained to preserve local area, creating realistic turbulence and heat-haze effects.
+
+<Figure>
+  <Picture slot="figure" src={all_geometric} alt="Examples of simulated refractive distortions including radial, Perlin, TPS, and divergence-free warps, with corresponding checkerboard and UV maps." />
+  <Fragment slot="caption">
+    Examples of simulated refractive distortions. Each row shows the undistorted input, the distorted output, a checkerboard visualization of geometric warping, and the corresponding UV map (R=U, G=V). Our framework models four refractive effects—radial, Perlin, TPS, and divergence-free—to produce diverse, physics-inspired geometric perturbations.
+  </Fragment>
+</Figure>
+
+
+## Restoration Models & Evaluation
+
+We fine-tune three pre-trained architectures for image restoration: **ResUNet** (ImageNet weights), **SegFormer-B1** (ImageNet weights), and a **Conditional DDPM diffusion model** (`ddpm-cat-256` weights).  
+For **ResUNet** and **SegFormer-B1**, encoder weights are frozen and only decoder parameters are updated. The diffusion U-Net is fine-tuned end-to-end. Each model is trained independently for two tasks:  
+- **Refractive undistortion** (correcting geometric warps)  
+- **Deweathering** (removing uniform fog, heterogeneous fog, and lens flare)
+
+### Training Setup
+- **Data split:** 80/20 random split for training and validation  
+- **Epochs:** 35 for refractive undistortion; 15 for deweathering  
+- **Batch sizes:** 16 (ResUNet, SegFormer-B1); 8 (DDPM)  
+- **Optimizer:** AdamW  
+- **Learning rates:** 5×10⁻⁵ (ResUNet, SegFormer-B1); 1×10⁻⁵ (DDPM)  
+- **Schedulers:** ReduceLROnPlateau (factor 0.5, patience 5); cosine warm-up (500 steps) for DDPM  
+- **Precision:** Mixed-precision AMP  
+- **Image resolution:** 256 × 256 crops for DDPM
+
+### Objective Functions
+
+**Refractive undistortion**  
+Supervised with ground-truth UV maps and clean RGB targets:
+\[
+\mathcal{L} = \| \hat{I} - I_{\mathrm{GT}} \|_1 + \| \hat{y}_{uv} - y^{uv}_{\mathrm{GT}} \|_1,
+\qquad
+\hat{I} = \mathrm{warp}(x, \hat{y}_{uv})
+\]
+where \(x\) is the distorted input and \(\hat{y}_{uv}\) the predicted flow.
+
+**Conditional DDPM loss**
+\[
+\mathcal{L}_{\mathrm{DDPM}} = 0.8\,\| \hat{\varepsilon} - \varepsilon \|_1 + \| \mathrm{warp}(x, \hat{y}) - I_{\mathrm{GT}} \|_2^2
+\]
+The first term trains the UV-denoising U-Net; the second enforces reconstruction consistency.
+
+**Deweathering objective**
+\[
+\mathcal{L} = \| \hat{I} - I_{\mathrm{GT}} \|_1
+\]
+with \(x\) the corrupted input and \(\hat{I}\) the predicted clean output.
+
+### Evaluation Metrics
+We report **Peak Signal-to-Noise Ratio (PSNR)** for restored images and **Endpoint Error (EPE)** for UV maps:
+\[
+\mathrm{PSNR} = 10 \log_{10}\!\left(\frac{MAX^2}{MSE}\right),
+\qquad
+\mathrm{EPE} = \frac{1}{N}\sum_i \big\| \hat{y}^{(i)}_{uv} - y^{(i)}_{\mathrm{GT}} \big\|_2
+\]
+where \(MAX = 255\) and \(MSE\) is computed between predicted and ground-truth images. Higher **PSNR** indicates better visual fidelity; lower **EPE** indicates more accurate UV flow.
+
 
 ## Results
 
