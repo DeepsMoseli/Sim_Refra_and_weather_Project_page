@@ -59,8 +59,12 @@ import { Comparison } from "../components/Comparison.tsx";
 
 import outside from "../assets/outside.mp4";
 import transformer from "../assets/transformer.webp";
-import dogsDiffc from "../assets/dogs-diffc.png"
-import dogsTrue from "../assets/dogs-true.png"
+
+import framework from "../assets/framework.png";
+import flare_orig from "../assets/flare_orig.png";
+import flare_sim from "../assets/flare_sim.png";
+import uniform_fog_orig from "../assets/uniform_fog_orig.png";
+import uniform_fog_sim from "../assets/uniform_fog_sim.png";
 
 import Table from "../components/Table.astro";
 export const components = { table: Table }
@@ -81,13 +85,13 @@ benchmark results.
 
 </HighlightedSection>
 
-## Figures
+## Pipeline
 
 Use the figure component to display images, videos, equations, or any other element, with an optional caption.
 
 <Figure>
-  <Picture slot="figure" src={transformer} alt="Diagram of the transformer deep learning architecture." invertInDarkMode />
-  <Fragment slot="caption">Diagram of the transformer deep learning architecture.</Fragment>
+  <Picture slot="figure" src={framework} alt="Diagram of the transformer deep learning architecture." invertInDarkMode />
+  <Fragment slot="caption">Overview of our two-stage restoration pipeline: a Synthetic Distortion Module applies random refractive distortions and weather artifacts; a Refractive U-Net predicts a dense UV displacement field to correct warps; and a Deweathering U-Net removes weather artifacts. The two models are trained separately.</Fragment>
 </Figure>
 
 If you stored your figures as PDFs, the `Picture` component can convert them into web-friendly images automatically.
@@ -100,12 +104,27 @@ If you stored your figures as PDFs, the `Picture` component can convert them int
 Use the `Comparison` component to compare two elements with an interactive slider. It should work for any component or HTML element, including images, videos, and 3D models.
 
 <Figure>
-  <Comparison slot="figure" client:idle >
-    <Picture slot="itemOne" src={dogsDiffc} alt="Photo of two dogs running side-by-side in shallow water, lossily compressed using the DiffC algorithm" />
-    <Picture slot="itemTwo" src={dogsTrue} alt="Original photo of two dogs running side-by-side in shallow water" />
+  <Comparison slot="figure" client:idle>
+    <Picture slot="itemOne" src={uniform_fog_orig} alt="Original driving scene without fog effects" />
+    <Picture slot="itemTwo" src={uniform_fog_sim} alt="Simulated driving scene with uniform fog applied" />
   </Comparison>
-  <Fragment slot="caption">A photo of two dogs running side-by-side in shallow water, lossily compressed using the [DiffC algorithm](https://jeremyiv.github.io/diffc-project-page/).</Fragment>
+  <Fragment slot="caption">
+    Comparison of a clear driving scene and its fog-augmented version generated using our uniform fog simulation. The method reduces visibility uniformly across depth.
+  </Fragment>
 </Figure>
+
+
+<Figure>
+  <Comparison slot="figure" client:idle>
+    <Picture slot="itemOne" src={flare_orig} alt="Original driving scene without lens flare" />
+    <Picture slot="itemTwo" src={flare_sim} alt="Simulated driving scene with lens flare artifacts" />
+  </Comparison>
+  <Fragment slot="caption">
+    Comparison between a clear driving scene and its lens flare simulation. The flare overlay introduces realistic streaks and glare patterns to mimic sunlight reflections on the camera lens.
+  </Fragment>
+</Figure>
+
+
 
 ## Two columns
 
