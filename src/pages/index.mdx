@@ -1,20 +1,24 @@
 ---
 layout: ../layouts/Layout.astro
-title: Research Project Page Template
+title: Simulating Refractive Distortions & Weather-Induced Artifacts for Resource-Constrained Autonomous Perception
 authors:
-  - name: Roman Hauksson
-    url: https://roman.technology
-    institution: University of Texas at Dallas
-    notes: ["*", †]
-  - name: Author Two
-    institution: Institution Two
-    notes: ["*", †]
-  - name: Author Three
-    institution: Institution Three
+  - name: Moseli Mots’oehli
+    institution: University of Hawaiʻi at Mānoa; MindForge AI / The Shard (South Africa)
+    notes: ["*", "†"]
+  - name: Feimei Chen
+    institution: University of Hawaiʻi at Mānoa
     notes: ["*"]
-  - name: Author Four
-    institution: Institution Four
-conference: Conference Name
+  - name: Hok Wai Chan
+    institution: University of Hawaiʻi at Mānoa
+    notes: ["*"]
+  - name: Itumeleng Tlali
+    institution: MindForge AI (South Africa)
+    notes: ["*"]
+  - name: Thulani Babeli, FRM
+    institution: MindForge AI (South Africa)
+    notes: ["*"]
+
+conference: ICCV 2025 — CV4DC Workshop (Honolulu, HI), October 19, 2025
 notes:
   - symbol: "*"
     text: author note one
@@ -22,13 +26,13 @@ notes:
     text: author note two
 links:
   - name: Paper
-    url: https://github.com/RomanHauksson/academic-project-astro-template
+    url: https://arxiv.org/pdf/2507.05536
     icon: ri:file-pdf-2-line
   - name: Code
-    url: https://github.com/RomanHauksson/academic-project-astro-template
+    url: https://github.com/DeepsMoseli/RefraWeather-Sim
     icon: ri:github-line
   - name: arXiv
-    url: https://github.com/RomanHauksson/academic-project-astro-template
+    url: https://arxiv.org/pdf/2507.05536
     icon: academicons:arxiv
 
 # The color theme of the page. Defaults to "device" (the preference set in the user's brower or operating system). Setting this to "light" or "dark" will override the user's preference. This is useful if your figures only look good in one theme.
@@ -67,7 +71,13 @@ export const components = { table: Table }
 
 ## Abstract
 
-This is a live demo for a template you can use to create a simple project page for your research paper. See the code for the template and instructions on how to use it yourself [here](https://github.com/RomanHauksson/academic-project-astro-template). It's made with the [Astro web framework](https://astro.build/) and styled with [Tailwind CSS](https://tailwindcss.com/). You write the content in [MDX](https://mdxjs.com/), which enables markdown formatting like **bold**, _italics_, and ~strikethrough~, as well as custom components like <SmallCaps>small caps.</SmallCaps>
+The scarcity of autonomous vehicle datasets from developing regions, particularly across Africa’s diverse urban, rural, and unpaved roads, remains a key obstacle to robust
+perception in low-resource settings. We present a procedural augmentation pipeline that enhances low-cost monocular dashcam footage with realistic refractive distortions and
+weather-induced artifacts tailored to challenging African driving scenarios. Our refractive module simulates optical
+effects from low-quality lenses and air turbulence, including lens distortion, Perlin noise, Thin-Plate Spline (TPS),and divergence-free (incompressible) warps. 
+The weather module adds homogeneous fog, heterogeneous fog, and lens flare. To establish a benchmark, we provide baseline performance using three image restoration models. To support perception research in underrepresented African contexts,
+without costly data collection, labeling, or simulation, we release our distortion toolkit, augmented dataset splits, and
+benchmark results.
 
 </HighlightedSection>
 
@@ -118,26 +128,29 @@ You can also add LaTeX formulas, rendered during the build process using [KaTeX]
 
 <LaTeX formula="\int_a^b f(x) dx" />
 
-## Tables
+## Results
 
-Add simple tables using [GitHub Flavored Markdown syntax](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables):
+Validation metrics for the refractive **R** and weather-induced artifact **W** image restoration. Here, L is the combined weighted loss, L_rec the L1 reconstruction loss, L_k the L1 k-map/UV loss, PSNR, and EPE as described in Section 4.2.*
 
-| Model | Accuracy | F1 score | Training time (hours) |
-| :--- | :---: | :---: | :---: |
-| BERT-base | 0.89 | 0.87 | 4.5 |
-| RoBERTa-large | 0.92 | 0.91 | 7.2 |
-| DistilBERT | 0.86 | 0.84 | 2.1 |
-| XLNet | 0.90 | 0.89 | 6.8 |
+| Model          | L     | L_rec | L_k    | PSNR  | EPE  |
+| :------------- | :---: | :---: | :----: | :---: | :--: |
+| *W* ResUnet    | 0.065 | 0.059 | 0.0070 | 32.54 |  –   |
+| *W* SegFormer  | 0.096 | 0.086 | 0.0100 | 28.99 |  –   |
+| *W* DDPM       | 0.054 | 0.051 | 0.0065 | 30.80 |  –   |
+| *R* ResUnet    | 0.034 | 0.029 | 0.0050 | 23.24 | 5.76 |
+| *R* SegFormer  | 0.146 | 0.085 | 0.0550 | 16.29 | 69.82|
+| *R* DDPM       | 0.044 | 0.039 | 0.0048 | 22.80 | 6.01 |
+
 
 ## BibTeX citation
 
 Displaying your BibTeX citation in a code block makes it easy to copy and paste.
 
 ```bibtex
-@misc{roman2024academic,
-  author = "{Roman Hauksson}",
-  title = "Academic Project Page Template",
-  year = "2024",
-  howpublished = "\url{https://research-template.roman.technology}",
+@article{motsoehli2025refraweather,
+  title   = {Simulating Refractive Distortions and Weather-Induced Artifacts for Resource-Constrained Autonomous Perception},
+  author  = {Mots'oehli, Moseli and Chen, Feimei and Chan, Hok Wai and Tlali, Itumeleng and Babeli, Thulani and Baek, Kyungim and Chen, Huaijin},
+  journal = {arXiv preprint arXiv:2507.05536},
+  year    = {2025}
 }
 ```
